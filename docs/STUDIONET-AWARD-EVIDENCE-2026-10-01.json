@@ -1,0 +1,38 @@
+{
+  "schema": "grantarena-studionet-award/v1",
+  "network": "GenLayer StudioNet",
+  "contractAddress": "0x9459d5b6e3da734255C5ae6039Ed104d9D74F3B3",
+  "roundId": 4,
+  "proposalId": 3,
+  "contestUsed": true,
+  "proposalScore": 75,
+  "proposalStatus": "FUNDED",
+  "roundStatus": "FINALIZED",
+  "poolAtto": "1000000000000000",
+  "winnerAwardAtto": "600000000000000",
+  "creatorRemainderAtto": "400000000000000",
+  "winnerAddress": "0x2403be3d300e9B9dD9f30b8903B73EF270F8d8C3",
+  "winnerBalanceBeforeAtto": "0",
+  "winnerBalanceAfterAtto": "600000000000000",
+  "creatorAddress": "0xa2B9c4903921a1EBEcd63Dd84F13431829B57719",
+  "creatorBalanceBeforeAtto": "5000000000000000",
+  "creatorBalanceAfterAtto": "4400000000000000",
+  "transactions": {
+    "createRound": "0xb1e8d3ec959e205b99ea18ab67d9a1104dc2453c0018f2a801fa648311aafc71",
+    "submitProposal": "0x416df224c9f1b97074f2f4e0243941f766934347c2745e45e480ae091b9b980e",
+    "contestProposal": "0x8696ff21f9b09fc55606849a03712dbbf7177017135fb57f929bfb476735aaf5",
+    "finalizeRound": "0xe77acf7e046b74f0a7a8d427c031fad110a0537a5f687d48110e7b79916cc8cb",
+    "winnerWithdraw": "0x9f996013d5caf0a3c132c5364699f0e1a081a47aae7a6c8e1c832fb103bdfa39",
+    "creatorRemainderWithdraw": "0x27ca40d248ab6f0a9d662e89b04d96821d35c50427ecc849da8c7a259b614455"
+  },
+  "verification": {
+    "allSixTransactionsFinalizedWithSuccessfulExecution": true,
+    "winnerWalletCredited": true,
+    "creatorRemainderCredited": true,
+    "contractAccountingInvariantHolds": true,
+    "liveTestPassed": true,
+    "liveTestRerunPassed": true,
+    "productionApiReadbackPassed": true,
+    "productionUiReadbackPassed": true
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.vercel/
+.artifacts/
+.pytest_cache/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+coverage/
+test-results/
+playwright-report/
+
+.vercel

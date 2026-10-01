@@ -1,0 +1,12 @@
+# Keep local test-wallet material and non-runtime Python tooling out of uploads.
+.env*
+.artifacts/
+.pytest_cache/
+__pycache__/
+*.pyc
+tests/
+contracts/
+deployments/
+docs/
+requirements.txt
+pyproject.toml

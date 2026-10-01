@@ -1,0 +1,38 @@
+{
+  "name": "grantarena",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test:web": "vitest run",
+    "contract:lint": "genvm-lint check contracts/grant_arena.py --json",
+    "contract:typecheck": "genvm-lint typecheck contracts/grant_arena.py --strict --json",
+    "contract:test": "pytest tests/direct -q",
+    "contract:test:integration": "gltest tests/integration/test_grant_arena_consensus.py -v -s --network localnet",
+    "contract:test:studionet": "gltest tests/integration/test_studionet_live.py -v -s --network studionet",
+    "verify:production": "node scripts/verify-production.mjs",
+    "verify": "npm run contract:lint && npm run contract:typecheck && npm run contract:test && npm run test:web && npm run build"
+  },
+  "dependencies": {
+    "genlayer-js": "1.1.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "viem": "2.55.11"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "jsdom": "29.0.1",
+    "typescript": "5.9.3",
+    "vite": "8.2.2",
+    "vitest": "5.0.1"
+  }
+}

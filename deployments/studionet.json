@@ -1,0 +1,52 @@
+{
+  "schema": "grantarena-deployment/v1",
+  "network": {
+    "name": "GenLayer StudioNet",
+    "chainId": 61999,
+    "rpc": "https://studio.genlayer.com/api"
+  },
+  "contract": {
+    "address": "0x9459d5b6e3da734255C5ae6039Ed104d9D74F3B3",
+    "deploymentTransaction": "0xb34fe17f803162072c96b1d34a45c0811a053d1e17f21ef0ff5e42cd1e2ae40f",
+    "sourceSha256": "0908b0266021d294b19e8285020a4141f9b476b7981ff21f6f83f76597ad75a8",
+    "deployedSourceSha256": "0908b0266021d294b19e8285020a4141f9b476b7981ff21f6f83f76597ad75a8",
+    "sourceExact": true
+  },
+  "fundedCanary": {
+    "roundId": 3,
+    "poolAtto": "1000000000000000",
+    "owner": "0xa2B9c4903921a1EBEcd63Dd84F13431829B57719",
+    "cancelTransaction": "0x9c63119ea69dcad45bec0f15f0024c7ca2e1759eda75adb40bd22043fc756243",
+    "withdrawTransaction": "0xa36f07a9f1104d18c6f328b067a2188d694b2e651a8a2629d0b6c1eee925a718",
+    "roundStatus": "CANCELLED",
+    "withdrawalStatus": "TRANSFER_QUEUED",
+    "balanceAfterCreateAtto": "4000000000000000",
+    "balanceAfterWithdrawalAtto": "5000000000000000",
+    "externalCreditObserved": true,
+    "createTransactionCaptured": false
+  },
+  "liveVerification": {
+    "status": "FINALIZED",
+    "consensus": "MAJORITY_AGREE",
+    "roundId": 2,
+    "proposalId": 2,
+    "createRoundTransaction": "0x254904fc7e2bd308a6a1e9db99d1b0310e34b9a4ae3dedc876457873df8c1393",
+    "submitProposalTransaction": "0x04db9488c1778e646e77ff77f076a3fcd60ed01b026cee1261f3a864089a91ae",
+    "observed": {
+      "roundStatus": "OPEN",
+      "proposalStatus": "QUALIFIED",
+      "proposalScore": 75,
+      "proposalGrades": ["STRONG", "STRONG"]
+    },
+    "schemaMethodsVerified": [
+      "contest_proposal",
+      "create_round",
+      "finalize_round",
+      "get_proposal",
+      "get_round",
+      "list_round_proposals",
+      "list_rounds",
+      "submit_proposal"
+    ]
+  }
+}
