@@ -72,6 +72,14 @@ check('qualified but unsigned proposal was not paid', unreviewedProposalResponse
   && unreviewedProposal.proposal?.attestedAt === '0'
   && unreviewedProposal.proposal?.awardAtto === '0');
 
+const practiceResponse = await fetch(`${base}/api/rounds?id=3`);
+const practice = await practiceResponse.json();
+check('public practice round readable', practiceResponse.status === 200
+  && practice.round?.roundKey === 'public-practice-2026-oct'
+  && practice.round?.poolAtto === '0');
+check('practice round open for first-time applications', practice.round?.status === 'OPEN'
+  && Number(practice.round?.submissionDeadline) * 1_000 > Date.now());
+
 const openapiResponse = await fetch(`${base}/api/openapi`);
 const openapi = await openapiResponse.json();
 check('OpenAPI document', openapiResponse.status === 200 && openapi.openapi === '3.1.0' && openapi.info?.title === 'GrantArena API' && openapi.info?.version === '2.0.0');

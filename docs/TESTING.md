@@ -9,17 +9,18 @@ Scope: current intelligent contract, scoring and attestation boundary, React cli
 | GenVM lint | Passed, 3 checks; 16 public methods |
 | Strict GenVM typecheck | Passed, 0 diagnostics |
 | Direct contract tests | 23 passed |
-| Web/API unit tests | 25 passed |
+| Web/API unit tests | 28 passed |
 | TypeScript/Vite production build | Passed |
 | Five-validator GLSim integration | Passed, 1 test |
 | StudioNet v2 funded flow | Passed: deploy, round creation, consensus proposal, signed review, finalization, withdrawal and recipient-balance readback |
 | StudioNet v2 no-attestation flow | Passed: a proposal scored 75 but received zero award; the full 0.0001 test-GEN pool returned to the creator's claimable balance |
+| Open first-time practice round | Passed: public zero-pool round #3 created and read back as OPEN; no payout is possible |
 | Deployed code identity | Local and StudioNet source SHA-256 match: `097fac35c308b9290f25d6074122f25dc8303a8aa9d3d90f0a75acb6d9665a46` |
 | Read-only StudioNet evidence verifier | Passed: 9 finalized, successfully executed transactions plus current state/balance readback |
-| Production Vercel deployment | Promoted deployment `dpl_36e1ypUCe2iUmMgyFA3gLjFicP6P` to `https://grantarena.vercel.app` |
-| Production HTTP/API | Passed: 21 checks covering homepage, headers, v2 health, paid and unpaid round/proposal readback, latest pagination, preview, OpenAPI, invalid inputs and absence of the test route |
-| Production browser | Passed: both live rounds and signed/unsigned outcomes rendered; evidence details opened; expected missing-wallet message shown; no error overlay or console logs after clean reload |
-| 390px mobile browser | Passed: `scrollWidth === innerWidth`; Rounds, Create, Apply and For agents remained visible; agent panel opened |
+| Production Vercel deployment | Promoted deployment `dpl_C3m77PdLVVApT15YEutUraHLXWah` to `https://grantarena.vercel.app` |
+| Production HTTP/API | Passed: 23 checks covering homepage, headers, v2 health, paid and unpaid round/proposal readback, open practice round, latest pagination, preview, OpenAPI, invalid inputs and absence of the test route |
+| Production browser | Passed: three live rounds rendered, including the open practice round; Apply selected round #3; provisional score and no-payout wording appeared; funded-round form rejected a zero-address reviewer; no error overlay or page errors |
+| 390px mobile browser | Passed: `scrollWidth === innerWidth` at 390px; navigation and practice application form remained visible |
 | API route exposure | Former `/api/preview.test` test file moved outside `api`; production now returns HTTP 404 for that path |
 
 The 23 direct tests cover funding and accounting, validation boundaries, score caps, rankings, contest limits, finalization timing, withdrawal, and v2 cases: no attestation means no funded payout; only the named reviewer can attest; digest mismatch is rejected; a contest invalidates prior attestation; revocation removes eligibility; and repetitive filler has a low deterministic cap. Direct mocks do **not** establish that an LLM resists every prompt injection.
@@ -40,6 +41,8 @@ Round #1 finalized with proposal #1 funded for `600000000000000` atto test GEN. 
 
 Round #2 deliberately had no reviewer attestation. Proposal #2 scored 75 and was qualified, but finalization selected no winner, allocated zero, and returned the full `100000000000000` atto pool. The [negative-case evidence](STUDIONET-UNATTESTED-EVIDENCE-2026-10-03.json) and the same read-only verifier confirm this result.
 
+Round #3 is an [open decision-only practice round](STUDIONET-PRACTICE-ROUND-2026-10-03.json). Its [creation transaction](https://explorer-studio.genlayer.com/transactions/0x7a456c0077ec9d6981d211b74880a087f45da457074d355b614a95c68eaa5fc7) finalized successfully; the public API reads back an OPEN round with a zero pool. It makes the Apply flow available to first-time StudioNet wallet users. It is not a funded or independently reviewed grant.
+
 ## Reproduce
 
 ```powershell
@@ -55,6 +58,7 @@ The opt-in live test is `tests/integration/test_studionet_v2.py` with `RUN_STUDI
 ## Remaining limits
 
 - The intelligent contract cannot authenticate applicant URLs or real-world claims. The reviewer signature is a payout gate and accountable statement, not proof of truth or reviewer independence.
+- A high AI score and `QUALIFIED` status can appear before evidence review. The site now presents these as provisional rubric results; no funded payout occurs without attestation. Distinct-word caps do not establish semantic relevance and may be bypassed by varied filler if the model is fooled.
 - Deterministic token caps and JSON prompt boundaries reduce simple padding/delimiter attacks; they cannot guarantee immunity to adversarial language or model error.
 - A `TRANSFER_QUEUED` withdrawal record alone is insufficient to prove recipient credit. The canary additionally observed a matching external transfer instruction and recipient balance increase. The balance may change later.
 - No real user-wallet transaction was requested for v2. The canary used operator-controlled StudioNet test wallets.

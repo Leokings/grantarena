@@ -1,0 +1,12 @@
+{
+  "network": "GenLayer StudioNet",
+  "contract": "0x1ce8DB3eD235dEdF7e2Ec9E4318EbdD99Ad43F6f",
+  "createRoundTransaction": "0x7a456c0077ec9d6981d211b74880a087f45da457074d355b614a95c68eaa5fc7",
+  "roundId": 3,
+  "roundKey": "public-practice-2026-oct",
+  "submissionDeadlineEpoch": 1794912393,
+  "appealDeadlineEpoch": 1795171593,
+  "poolAtto": "0",
+  "purpose": "First-time users can submit to an open decision-only practice round. There is no prize or payout, and an AI rubric score is not evidence verification.",
+  "verification": "GET https://grantarena.vercel.app/api/rounds?id=3 or npm run verify:production -- https://grantarena.vercel.app"
+}

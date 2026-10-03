@@ -154,12 +154,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .proposal-heading { margin: 30px 0 13px; }
 .proposal-list { display: flex; flex-direction: column; gap: 10px; }
 .proposal-card { display: grid; grid-template-columns: 80px 1fr; gap: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; }
-.proposal-score { align-self: start; height: 72px; display: flex; align-items: baseline; justify-content: center; padding-top: 15px; border-radius: 13px; background: var(--mint); color: var(--green); }
+.proposal-score { align-self: start; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 13px; background: var(--mint); color: var(--green); }
 .proposal-score strong { font-family: Georgia, serif; font-size: 31px; }
 .proposal-score span { font-size: 9px; }
+.proposal-score small { font-size: 7px; font-weight: 850; text-align: center; text-transform: uppercase; letter-spacing: .04em; }
 .proposal-title-line { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .proposal-title-line h4 { margin: 0; font-family: Georgia, serif; font-size: 19px; }
 .proposal-copy > p { margin: 7px 0 10px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.proposal-copy > .provisional-note { color: #8f4a37; font-weight: 800; }
 .grade-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .grade-row span { display: flex; gap: 7px; padding: 5px 8px; border-radius: 6px; background: #f2f2ec; color: #4e635c; font-size: 8px; font-weight: 850; }
 .grade-row b { color: var(--ink); }
@@ -319,7 +321,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .round-timeline > div { border-left: 0; border-top: 1px solid var(--line); }
   .round-timeline > div:first-child { border-top: 0; }
   .proposal-card { grid-template-columns: 58px 1fr; gap: 12px; padding: 12px; }
-  .proposal-score { height: 58px; padding-top: 11px; }
+  .proposal-score { min-height: 68px; }
   .proposal-score strong { font-size: 24px; }
   .proposal-action { margin-left: 70px; }
   .round-actions { align-items: stretch; flex-direction: column; }
