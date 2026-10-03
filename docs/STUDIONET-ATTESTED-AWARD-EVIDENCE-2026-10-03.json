@@ -1,0 +1,30 @@
+{
+  "schema": "grantarena-studionet-attested-award/v2",
+  "network": "GenLayer StudioNet",
+  "contractAddress": "0x1ce8DB3eD235dEdF7e2Ec9E4318EbdD99Ad43F6f",
+  "deploymentTransaction": "0x6b84ffe5624f811f559e69ff99a107ef45d1e581b48eccb6f18b45c82808e9b6",
+  "sourceSha256": "097fac35c308b9290f25d6074122f25dc8303a8aa9d3d90f0a75acb6d9665a46",
+  "roundId": 1,
+  "proposalId": 1,
+  "creatorAddress": "0xa2B9c4903921a1EBEcd63Dd84F13431829B57719",
+  "reviewerAddress": "0x2dFee6A51106123C5e52bb975e301C0A1b16499B",
+  "winnerAddress": "0xcD83817069693Fbac4B98E83D574D890D64d7Ba8",
+  "proposalDigest": "79be3964561730ca19862a23e826138aa5c0afd741978f6c80b35fd8fe928f66",
+  "poolAtto": "1000000000000000",
+  "awardAtto": "600000000000000",
+  "creatorRemainderAtto": "400000000000000",
+  "winnerBalanceBeforeAtto": "0",
+  "winnerBalanceAfterAtto": "600000000000000",
+  "transactions": {
+    "createRound": "0x223bffb0365f4496687c039d770d78b6b1b170689e0bc4c40fdb5d25ec3b5b75",
+    "submitProposal": "0x4bdb9be1d8967de214442bf80f45eb9c9dce0ac9570fc383c8676243526e6a30",
+    "attestProposal": "0x239c2676e403c5c364ffb9bd4f8bbdb52f5044feb8ad5fc174c149dba96869f1",
+    "finalizeRound": "0xf6c7e8b0cc47e707f41758669adc87252401373c2ca1405b690cf7613e0f16bc",
+    "winnerWithdraw": "0x51bc3f0e615c296e883ec8df72b1f9419cc30da4d255d33a4b68f8da29c56716"
+  },
+  "limitations": [
+    "The reviewer and applicant are separate wallets derived from a recoverable canary key controlled by the same test operator. This validates contract mechanics, not real-world reviewer independence.",
+    "The applicant-supplied URL and project claims were not authenticated by the canary test.",
+    "The winner balance is a time-specific observation; the wallet can later transfer its test GEN."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "grantarena-studionet-unattested-award/v2",
+  "network": "GenLayer StudioNet",
+  "contractAddress": "0x1ce8DB3eD235dEdF7e2Ec9E4318EbdD99Ad43F6f",
+  "roundId": 2,
+  "proposalId": 2,
+  "creatorAddress": "0xa2B9c4903921a1EBEcd63Dd84F13431829B57719",
+  "applicantAddress": "0xcD83817069693Fbac4B98E83D574D890D64d7Ba8",
+  "poolAtto": "100000000000000",
+  "score": 75,
+  "allocatedAtto": "0",
+  "returnedAtto": "100000000000000",
+  "transactions": {
+    "createRound": "0x741cf91e54496b0053caacdea9549d1f42a33f7db576605ad19f3460797aa65e",
+    "submitProposal": "0x2be7b43666ff11fb57e4c9a4356266541d5e1f3567cea924cb63fe214b6c7f54",
+    "finalizeRound": "0x5b1668875461c3553fd69a872091bd3eeb49c5c83a38a7fc2751b3af08739c98"
+  },
+  "caveat": "The applicant and creator are test wallets controlled by the same operator; this checks payout eligibility, not applicant identity or project truth."
+}

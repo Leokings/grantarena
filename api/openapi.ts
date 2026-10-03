@@ -51,7 +51,7 @@ export default {
         },
         '/api/preview': {
           post: {
-            summary: 'Check criterion shape and deterministic answer-length score caps',
+            summary: 'Check criterion shape and deterministic distinct-word score caps',
             requestBody: {
               required: true,
               content: { 'application/json': { schema: { $ref: '#/components/schemas/PreviewRequest' } } },

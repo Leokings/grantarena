@@ -14,9 +14,11 @@ export type PreviewResult = {
 };
 
 export function answerCap(answer: string): number {
-  const length = answer.trim().length;
-  if (length === 0) return 25;
-  if (length < 80) return 50;
+  const words = answer.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const distinct = new Set(words);
+  if (words.length === 0) return 0;
+  if (words.length < 12 || distinct.size < 8) return 25;
+  if (words.length < 25 || distinct.size < 16) return 50;
   return 100;
 }
 

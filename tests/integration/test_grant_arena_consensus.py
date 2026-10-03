@@ -25,18 +25,18 @@ def test_five_validator_grant_scoring_flow():
         {"id": "delivery", "label": "Delivery confidence", "description": "Explain milestones, ownership, acceptance tests, and meaningful delivery risks.", "weight": 40},
     ]
     context = {"genvm_datetime": "2026-10-01T12:00:00Z"}
-    _ok(admin.create_round(args=["open-infra-2026", "Open infrastructure grants", "Fund durable public infrastructure with measurable adoption and a credible delivery plan.", 1_790_859_600, 3600, 1, 60, 0, json.dumps(criteria), json.dumps([10000])]).transact(value=0, transaction_context=context, wait_transaction_status=TransactionStatus.FINALIZED))
+    _ok(admin.create_round(args=["open-infra-2026", "Open infrastructure grants", "Fund durable public infrastructure with measurable adoption and a credible delivery plan.", 1_790_859_600, 3600, 1, 60, 0, "0x0000000000000000000000000000000000000000", json.dumps(criteria), json.dumps([10000])]).transact(value=0, transaction_context=context, wait_transaction_status=TransactionStatus.FINALIZED))
     validators = get_validator_factory().batch_create_mock_validators(
         5,
-        mock_llm_response={"nondet_exec_prompt": {"Evaluate this grant proposal": json.dumps({"grades": ["STRONG", "STRONG"], "summary": "Specific public impact and a credible milestone plan."})}},
+        mock_llm_response={"nondet_exec_prompt": {"Evaluate this grant proposal": json.dumps({"grades": ["STRONG", "STRONG"]})}},
     )
     tx_context = {
         "validators": [validator.to_dict() for validator in validators],
         "genvm_datetime": "2026-10-01T12:01:00Z",
     }
     answers = {
-        "impact": "The public index serves maintainers and measures adoption through verified monthly users and response time.",
-        "delivery": "Three named milestones cover indexing, dashboard delivery, and an audited public API with acceptance tests.",
+        "impact": "The public index serves maintainers and measures adoption through independently published monthly users, confirmed alerts resolved, response time, and a documented pilot across several open-source communities over six months.",
+        "delivery": "Three named milestones cover indexing, dashboard delivery, and an audited public API with acceptance tests, identified owners, weekly source releases, risk tracking, and fallback procedures for data provider outages.",
     }
     submitted = applicant_contract.submit_proposal(args=[1, "civic-signal", "Civic Signal", "A public observability layer for community infrastructure with transparent progress and durable open data.", 7_000, json.dumps(answers), json.dumps(["https://example.org/project"])]).transact(value=0, transaction_context=tx_context, wait_transaction_status=TransactionStatus.FINALIZED)
     _ok(submitted)

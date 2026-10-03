@@ -122,7 +122,7 @@ def test_live_contest_and_funded_winner_payout():
         bytes.fromhex(owner_key.removeprefix("0x")) + b"grantarena-award-applicant-v1"
     ).digest()
     applicant = create_account(applicant_key)
-    source = root / "contracts" / "grant_arena.py"
+    source = root / "contracts" / "grant_arena_v1.py"
     factory = get_contract_factory(contract_file_path=source)
     admin = factory.build_contract(CONTRACT_ADDRESS, account=owner)
     proposer = factory.build_contract(CONTRACT_ADDRESS, account=applicant)

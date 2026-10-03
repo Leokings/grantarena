@@ -54,7 +54,7 @@ def test_funded_round_cancellation_and_external_withdrawal():
     else:
         owner = create_accounts(1)[0]
         key_path.write_text(owner.key.hex(), encoding="ascii")
-    source = Path(__file__).resolve().parents[2] / "contracts" / "grant_arena.py"
+    source = Path(__file__).resolve().parents[2] / "contracts" / "grant_arena_v1.py"
     factory = get_contract_factory(contract_file_path=source)
     contract = factory.build_contract(CONTRACT_ADDRESS, account=owner)
     key = f"value-canary-{int(datetime.now(timezone.utc).timestamp())}"

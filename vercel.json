@@ -14,8 +14,5 @@
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

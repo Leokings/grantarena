@@ -94,6 +94,7 @@ export function parseRound(value: unknown): RoundRecord {
     roundId: decimalFrom(record.round_id, 'round ID'),
     roundKey: stringFrom(record.round_key, 'round key'),
     creator: String(record.creator ?? ''),
+    reviewer: stringFrom(record.reviewer, 'reviewer'),
     title: stringFrom(record.title, 'round title'),
     mission: stringFrom(record.mission, 'round mission'),
     submissionDeadline: decimalFrom(record.submission_deadline, 'submission deadline'),
@@ -119,7 +120,7 @@ export function parseRound(value: unknown): RoundRecord {
 export function parseProposal(value: unknown): ProposalRecord {
   const record = recordFrom(value, 'proposal');
   const status = stringFrom(record.status, 'proposal status');
-  if (!['QUALIFIED', 'REJECTED', 'FUNDED'].includes(status)) {
+  if (!['QUALIFIED', 'REJECTED', 'FUNDED', 'SELECTED'].includes(status)) {
     throw new Error('GenLayer returned an unknown proposal status.');
   }
   return {
@@ -141,6 +142,11 @@ export function parseProposal(value: unknown): ProposalRecord {
     bondAtto: decimalFrom(record.bond_atto, 'proposal bond'),
     contestUsed: booleanFrom(record.contest_used, 'contest flag'),
     contestAddendum: stringFrom(record.contest_addendum, 'contest addendum'),
+    evidenceDigest: stringFrom(record.evidence_digest, 'evidence digest'),
+    attestedBy: stringFrom(record.attested_by, 'attester'),
+    attestedDigest: stringFrom(record.attested_digest, 'attested digest'),
+    attestedAt: decimalFrom(record.attested_at, 'attestation time'),
+    attestationNote: stringFrom(record.attestation_note, 'attestation note'),
     rank: numberFrom(record.rank, 'rank'),
     awardAtto: decimalFrom(record.award_atto, 'award'),
     submittedAt: decimalFrom(record.submitted_at, 'submitted time'),

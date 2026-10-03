@@ -21,12 +21,11 @@ import {
 } from './public-config';
 
 const configuredRpc = import.meta.env.VITE_GENLAYER_RPC_URL?.trim() || STUDIONET_RPC_URL;
-const configuredAddress = import.meta.env.VITE_GENLAYER_CONTRACT_ADDRESS?.trim() || STUDIONET_CONTRACT_ADDRESS;
 const chain = {
   ...studionet,
   rpcUrls: { default: { http: [configuredRpc] } },
 } as const;
-const contractAddress = getAddress(configuredAddress);
+const contractAddress = getAddress(STUDIONET_CONTRACT_ADDRESS);
 const readClient = createClient({ chain });
 const latestFinal = TransactionHashVariant.LATEST_FINAL;
 
@@ -295,6 +294,7 @@ export async function createRound(
     BigInt(input.winnerCount),
     BigInt(input.minimumScore),
     input.proposalBondAtto,
+    getAddress(input.reviewer),
     JSON.stringify(input.criteria),
     JSON.stringify(input.payoutBps),
   ], input.poolAtto, onSubmitted);
@@ -323,6 +323,24 @@ export async function contestProposal(
   onSubmitted?: (hash: TransactionHash) => void,
 ) {
   return write(account, 'contest_proposal', [proposalId, addendum], 0n, onSubmitted);
+}
+
+export async function attestProposal(
+  account: string,
+  proposalId: bigint,
+  evidenceDigest: string,
+  note: string,
+  onSubmitted?: (hash: TransactionHash) => void,
+) {
+  return write(account, 'attest_proposal', [proposalId, evidenceDigest, note], 0n, onSubmitted);
+}
+
+export async function revokeAttestation(
+  account: string,
+  proposalId: bigint,
+  onSubmitted?: (hash: TransactionHash) => void,
+) {
+  return write(account, 'revoke_attestation', [proposalId], 0n, onSubmitted);
 }
 
 export async function finalizeRound(

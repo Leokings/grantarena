@@ -1,6 +1,6 @@
 {
   "name": "grantarena",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -18,6 +18,7 @@
     "contract:test:integration": "gltest tests/integration/test_grant_arena_consensus.py -v -s --network localnet",
     "contract:test:studionet": "gltest tests/integration/test_studionet_live.py -v -s --network studionet",
     "verify:production": "node scripts/verify-production.mjs",
+    "verify:studionet-award": "node scripts/verify-studionet-v2.mjs",
     "verify": "npm run contract:lint && npm run contract:typecheck && npm run contract:test && npm run test:web && npm run build"
   },
   "dependencies": {

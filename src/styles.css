@@ -164,6 +164,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .grade-row span { display: flex; gap: 7px; padding: 5px 8px; border-radius: 6px; background: #f2f2ec; color: #4e635c; font-size: 8px; font-weight: 850; }
 .grade-row b { color: var(--ink); }
 .proposal-meta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; color: var(--muted); font-size: 9px; }
+.proposal-evidence { margin-top: 12px; color: var(--muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.proposal-evidence summary { cursor: pointer; color: var(--ink); font-weight: 800; }
+.proposal-evidence ul { padding-left: 18px; }
+.proposal-evidence code { font-size: 10px; }
+.reviewer-line { margin: 10px 0 18px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .proposal-action { margin: 2px 0 5px 100px; }
 .empty-proposals, .loading-card, .empty-state { display: grid; justify-items: center; gap: 8px; padding: 48px 20px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 16px; }
 .empty-proposals > span, .empty-state > span { color: var(--coral); font-size: 30px; }

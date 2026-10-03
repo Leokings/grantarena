@@ -7,19 +7,24 @@ const criteria = [
 ];
 
 describe('proposal preview', () => {
-  it('mirrors the contract answer-length caps', () => {
-    expect(answerCap('')).toBe(25);
-    expect(answerCap('specific but short')).toBe(50);
-    expect(answerCap('x'.repeat(80))).toBe(100);
+  it('mirrors the contract word and distinct-word caps', () => {
+    expect(answerCap('')).toBe(0);
+    expect(answerCap('specific but short')).toBe(25);
+    expect(answerCap('x'.repeat(80))).toBe(25);
+    expect(answerCap('One clear result will be published for every participating maintainer after a six week pilot.')).toBe(50);
+    expect(answerCap('The project gives community maintainers a public dashboard for dependency health and measures progress with monthly usage, confirmed alerts resolved, response times, independent checks, and published reports across six months.')).toBe(100);
   });
 
   it('computes the weighted maximum before consensus', () => {
     const result = previewProposal({
       criteria,
-      answers: { impact: 'x'.repeat(100), delivery: 'short' },
+      answers: {
+        impact: 'The project gives community maintainers a public dashboard for dependency health and measures progress with monthly usage, confirmed alerts resolved, response times, independent checks, and published reports across six months.',
+        delivery: 'short',
+      },
     });
     expect(result.valid).toBe(true);
-    expect(result.maximumWeightedScore).toBe(80);
+    expect(result.maximumWeightedScore).toBe(70);
   });
 
   it('rejects mismatched answers and invalid weights', () => {

@@ -1,4 +1,5 @@
 import json
+from gltest.direct.loader import create_address
 
 
 BASE = 1_790_856_000
@@ -6,6 +7,7 @@ DEADLINE = BASE + 3_600
 APPEAL = 3_600
 POOL = 10_000
 BOND = 10
+REVIEWER = create_address("independent-reviewer")
 
 CRITERIA = [
     {
@@ -23,13 +25,13 @@ CRITERIA = [
 ]
 
 ANSWERS_A = {
-    "impact": "The project will give 500 community maintainers a public dashboard and measures success through verified monthly usage and response time.",
-    "delivery": "A two-person team will ship the indexer, dashboard, and public API in three milestones with weekly source releases and an explicit fallback plan.",
+    "impact": "The project will give 500 community maintainers a public dashboard for dependency health and measure success through independently published monthly usage, confirmed alerts resolved, and median response time over six months.",
+    "delivery": "A two-person team will ship the indexer, dashboard, and public API in three milestones with weekly source releases, acceptance tests for malformed inputs, a documented owner for each phase, and an explicit fallback plan.",
 }
 
 ANSWERS_B = {
-    "impact": "The program serves open-source stewards with an auditable grant-discovery feed and measures successful matches and completed milestones.",
-    "delivery": "The delivery plan has discovery, pilot, and production phases, named owners, acceptance tests, and a documented contingency for provider outages.",
+    "impact": "The program serves open-source stewards with an auditable grant-discovery feed, publishes selection criteria and weekly changes, and measures successful matches, completed milestones, and participant satisfaction across the first cohort.",
+    "delivery": "The delivery plan has discovery, pilot, and production phases, named owners, acceptance tests for each release, a documented contingency for provider outages, and a public timeline with weekly status updates.",
 }
 
 
@@ -51,6 +53,7 @@ def _create(contract, vm, owner, **overrides):
         "winners": 2,
         "minimum": 60,
         "bond": BOND,
+        "reviewer": REVIEWER,
         "criteria": CRITERIA,
         "payouts": [7000, 3000],
     }
@@ -65,6 +68,7 @@ def _create(contract, vm, owner, **overrides):
             values["winners"],
             values["minimum"],
             values["bond"],
+            values["reviewer"],
             json.dumps(values["criteria"]),
             json.dumps(values["payouts"]),
         )
@@ -92,7 +96,7 @@ def _submit(
     vm.clear_mocks()
     vm.mock_llm(
         r".*Evaluate this grant proposal.*",
-        json.dumps({"grades": grades or ["STRONG", "STRONG"], "summary": "Specific impact and a credible staged delivery plan."}),
+        json.dumps({"grades": grades or ["STRONG", "STRONG"]}),
     )
     try:
         return contract.submit_proposal(
@@ -108,12 +112,23 @@ def _submit(
         vm.value = 0
 
 
+def _attest(contract, vm, proposal_id, reviewer=REVIEWER):
+    vm.sender = reviewer
+    proposal = contract.get_proposal(proposal_id)
+    contract.attest_proposal(
+        proposal_id,
+        proposal["evidence_digest"],
+        "I reviewed this exact proposal version and accept responsibility for allowing its test-GEN payout.",
+    )
+
+
 def test_create_round_locks_pool_and_exposes_full_policy(contract, direct_vm, direct_alice):
     round_id = _create(contract, direct_vm, direct_alice)
     state = contract.get_round(round_id)
     info = contract.get_contract_info()
     assert round_id == 1
-    assert state["schema"] == "grantarena/round/v1"
+    assert state["schema"] == "grantarena/round/v2"
+    assert state["reviewer"] == _address(REVIEWER)
     assert state["pool_atto"] == POOL
     assert state["status"] == "OPEN"
     assert [item["weight"] for item in state["criteria"]] == [60, 40]
@@ -151,13 +166,13 @@ def test_semantic_grades_become_deterministic_weighted_score(contract, direct_vm
 
 
 def test_unaddressed_criterion_is_capped_before_model_runs(contract, direct_vm, direct_alice, direct_bob):
-    _create(contract, direct_vm, direct_alice, minimum=40)
+    _create(contract, direct_vm, direct_alice, minimum=25)
     answers = dict(ANSWERS_A)
     answers["impact"] = ""
     proposal_id = _submit(contract, direct_vm, direct_bob, answers=answers, grades=["EXCELLENT", "STRONG"])
     proposal = contract.get_proposal(proposal_id)
-    assert proposal["criterion_scores"] == [25, 75]
-    assert proposal["weighted_score"] == 45
+    assert proposal["criterion_scores"] == [0, 75]
+    assert proposal["weighted_score"] == 30
     assert proposal["status"] == "QUALIFIED"
 
 
@@ -166,14 +181,14 @@ def test_short_answer_cannot_score_above_fair(contract, direct_vm, direct_alice,
     answers = dict(ANSWERS_A)
     answers["delivery"] = "We will ship quickly with a small experienced team."
     proposal_id = _submit(contract, direct_vm, direct_bob, answers=answers, grades=["STRONG", "EXCELLENT"])
-    assert contract.get_proposal(proposal_id)["criterion_scores"] == [75, 50]
+    assert contract.get_proposal(proposal_id)["criterion_scores"] == [75, 25]
 
 
 def test_bond_sender_and_unique_wallet_guards(contract, direct_vm, direct_alice, direct_bob):
     _create(contract, direct_vm, direct_alice)
     direct_vm.sender = direct_alice
     direct_vm.value = BOND
-    direct_vm.mock_llm(r".*Evaluate this grant proposal.*", json.dumps({"grades": ["STRONG", "STRONG"], "summary": "Credible enough for this test case."}))
+    direct_vm.mock_llm(r".*Evaluate this grant proposal.*", json.dumps({"grades": ["STRONG", "STRONG"]}))
     with direct_vm.expect_revert("creator_cannot_submit"):
         contract.submit_proposal(1, "owner-entry", "Owner entry", "This owner-controlled proposal must be rejected before any semantic evaluation can influence state.", 1000, json.dumps(ANSWERS_A), "[]")
     direct_vm.sender = direct_bob
@@ -192,7 +207,7 @@ def test_malformed_model_output_never_mutates_state(contract, direct_vm, direct_
     direct_vm.value = BOND
     direct_vm.mock_llm(r".*Evaluate this grant proposal.*", json.dumps({"score": 99}))
     with direct_vm.expect_revert("[LLM_ERROR] invalid_evaluation_shape"):
-        contract.submit_proposal(1, "bad-model", "Bad model", "This valid-looking proposal should not be stored when the model violates the required response schema.", 1000, json.dumps(ANSWERS_A), "[]")
+        contract.submit_proposal(1, "bad-model", "Bad model", "This valid-looking proposal should not be stored when the model violates the required response schema.", 1000, json.dumps(ANSWERS_A), json.dumps(["https://example.org/review-material"]))
     direct_vm.value = 0
     assert contract.get_round(1)["proposal_count"] == 0
 
@@ -206,7 +221,7 @@ def test_contest_is_one_time_proposer_only_and_updates_qualification(contract, d
         contract.contest_proposal(proposal_id, "New audited adoption figures and a signed delivery schedule now provide material criterion-specific evidence for review.")
     direct_vm.sender = direct_bob
     direct_vm.clear_mocks()
-    direct_vm.mock_llm(r".*Evaluate this grant proposal.*", json.dumps({"grades": ["STRONG", "STRONG"], "summary": "The novel evidence materially strengthens both criteria."}))
+    direct_vm.mock_llm(r".*Evaluate this grant proposal.*", json.dumps({"grades": ["STRONG", "STRONG"]}))
     contract.contest_proposal(proposal_id, "New audited adoption figures and a signed delivery schedule now provide material criterion-specific evidence for review.")
     assert contract.get_proposal(proposal_id)["status"] == "QUALIFIED"
     assert contract.get_round(1)["qualified_count"] == 1
@@ -224,6 +239,8 @@ def test_finalize_ranks_deterministically_and_credits_awards_and_bonds(contract,
     _create(contract, direct_vm, direct_alice)
     first_id = _submit(contract, direct_vm, direct_bob, requested=7_000, grades=["STRONG", "STRONG"])
     second_id = _submit(contract, direct_vm, direct_charlie, key="open-steward", title="Open Steward", requested=3_000, answers=ANSWERS_B, grades=["STRONG", "STRONG"])
+    _attest(contract, direct_vm, first_id)
+    _attest(contract, direct_vm, second_id)
     direct_vm.sender = direct_charlie
     direct_vm.warp("2026-10-01T14:01:00Z")
     contract.finalize_round(1)
@@ -247,6 +264,8 @@ def test_score_breaks_tie_before_requested_amount(contract, direct_vm, direct_al
     _create(contract, direct_vm, direct_alice)
     first_id = _submit(contract, direct_vm, direct_bob, requested=2_000, grades=["STRONG", "STRONG"])
     second_id = _submit(contract, direct_vm, direct_charlie, key="excellent", title="Excellent proposal", requested=7_000, answers=ANSWERS_B, grades=["EXCELLENT", "EXCELLENT"])
+    _attest(contract, direct_vm, first_id)
+    _attest(contract, direct_vm, second_id)
     direct_vm.warp("2026-10-01T14:01:00Z")
     contract.finalize_round(1)
     assert contract.get_round(1)["winner_ids"] == [second_id, first_id]
@@ -266,7 +285,8 @@ def test_cancel_empty_round_returns_pool_but_never_rugs_submitters(contract, dir
 
 def test_withdrawal_is_one_time_and_preserves_liability_accounting(contract, direct_vm, direct_alice, direct_bob):
     _create(contract, direct_vm, direct_alice, winners=1, payouts=[10_000], bond=0)
-    _submit(contract, direct_vm, direct_bob, requested=4_000, bond=0)
+    proposal_id = _submit(contract, direct_vm, direct_bob, requested=4_000, bond=0)
+    _attest(contract, direct_vm, proposal_id)
     direct_vm.warp("2026-10-01T14:01:00Z")
     direct_vm.sender = direct_alice
     contract.finalize_round(1)
@@ -306,4 +326,105 @@ def test_invalid_evidence_and_answer_shapes_fail_before_consensus(contract, dire
         contract.submit_proposal(1, "missing-answer", "Missing answer", "This proposal omits a required criterion answer and therefore cannot proceed to semantic evaluation.", 1000, json.dumps({"impact": ANSWERS_A["impact"]}), "[]")
     with direct_vm.expect_revert("invalid_evidence_url"):
         contract.submit_proposal(1, "bad-evidence", "Bad evidence", "This proposal uses an unsafe non-HTTPS evidence location and therefore must fail deterministic validation.", 1000, json.dumps(ANSWERS_A), json.dumps(["http://localhost/private"]))
+    with direct_vm.expect_revert("evidence_required_for_funded"):
+        contract.submit_proposal(1, "no-evidence", "No evidence", "This funded proposal provides no supporting material for the named reviewer to inspect before payout.", 1000, json.dumps(ANSWERS_A), "[]")
     direct_vm.value = 0
+
+
+def test_funded_round_never_pays_unattested_applicant_claims(contract, direct_vm, direct_alice, direct_bob):
+    _create(contract, direct_vm, direct_alice)
+    proposal_id = _submit(contract, direct_vm, direct_bob)
+    proposal = contract.get_proposal(proposal_id)
+    assert proposal["status"] == "QUALIFIED"
+    assert len(proposal["evidence_digest"]) == 64
+    assert proposal["attested_at"] == 0
+    direct_vm.warp("2026-10-01T14:01:00Z")
+    contract.finalize_round(1)
+    assert contract.get_round(1)["winner_ids"] == []
+    assert contract.get_round(1)["returned_atto"] == POOL
+    assert contract.get_proposal(proposal_id)["award_atto"] == 0
+    assert contract.get_claimable(direct_bob) == BOND
+    assert contract.get_claimable(direct_alice) == POOL
+
+
+def test_only_named_reviewer_can_attest_exact_proposal_version(contract, direct_vm, direct_alice, direct_bob, direct_charlie):
+    _create(contract, direct_vm, direct_alice)
+    proposal_id = _submit(contract, direct_vm, direct_bob)
+    digest = contract.get_proposal(proposal_id)["evidence_digest"]
+    direct_vm.sender = direct_charlie
+    with direct_vm.expect_revert("only_reviewer"):
+        contract.attest_proposal(proposal_id, digest, "I reviewed this exact proposal and permit its funded payout after checking the submitted references.")
+    direct_vm.sender = REVIEWER
+    with direct_vm.expect_revert("evidence_digest_mismatch"):
+        contract.attest_proposal(proposal_id, "0" * 64, "I reviewed this exact proposal and permit its funded payout after checking the submitted references.")
+    _attest(contract, direct_vm, proposal_id)
+    attested = contract.get_proposal(proposal_id)
+    assert attested["attested_by"] == _address(REVIEWER)
+    assert attested["attested_digest"] == digest
+    with direct_vm.expect_revert("already_attested"):
+        _attest(contract, direct_vm, proposal_id)
+
+
+def test_contest_invalidates_prior_attestation_until_reviewer_signs_again(contract, direct_vm, direct_alice, direct_bob):
+    _create(contract, direct_vm, direct_alice)
+    proposal_id = _submit(contract, direct_vm, direct_bob)
+    _attest(contract, direct_vm, proposal_id)
+    old_digest = contract.get_proposal(proposal_id)["evidence_digest"]
+    direct_vm.sender = direct_bob
+    direct_vm.clear_mocks()
+    direct_vm.mock_llm(r".*Evaluate this grant proposal.*", json.dumps({"grades": ["STRONG", "STRONG"]}))
+    contract.contest_proposal(proposal_id, "New independently reviewed pilot results include signed acceptance checks, repository snapshots, and weekly adoption measurements for a separate maintainer cohort.")
+    contested = contract.get_proposal(proposal_id)
+    assert contested["evidence_digest"] != old_digest
+    assert contested["attested_at"] == 0
+    assert contested["attested_digest"] == ""
+    direct_vm.sender = REVIEWER
+    with direct_vm.expect_revert("evidence_digest_mismatch"):
+        contract.attest_proposal(proposal_id, old_digest, "I reviewed the previous version, but this new version must not inherit my old signed attestation.")
+    _attest(contract, direct_vm, proposal_id)
+    direct_vm.warp("2026-10-01T14:01:00Z")
+    contract.finalize_round(1)
+    assert contract.get_proposal(proposal_id)["award_atto"] == 7_000
+
+
+def test_reviewer_can_revoke_before_finalization(contract, direct_vm, direct_alice, direct_bob):
+    _create(contract, direct_vm, direct_alice)
+    proposal_id = _submit(contract, direct_vm, direct_bob)
+    _attest(contract, direct_vm, proposal_id)
+    contract.revoke_attestation(proposal_id)
+    assert contract.get_proposal(proposal_id)["attested_at"] == 0
+    direct_vm.warp("2026-10-01T14:01:00Z")
+    contract.finalize_round(1)
+    assert contract.get_round(1)["winner_ids"] == []
+
+
+def test_repeated_filler_cannot_get_a_high_score_even_if_model_says_excellent(contract, direct_vm, direct_alice, direct_bob):
+    _create(contract, direct_vm, direct_alice, minimum=25)
+    answers = {"impact": "placeholder " * 100, "delivery": ANSWERS_A["delivery"]}
+    proposal_id = _submit(contract, direct_vm, direct_bob, answers=answers, grades=["EXCELLENT", "EXCELLENT"])
+    proposal = contract.get_proposal(proposal_id)
+    assert proposal["criterion_scores"] == [25, 100]
+    assert proposal["weighted_score"] == 55
+    assert "Applicant URLs are unverified" in proposal["evaluation_summary"]
+
+
+def test_contest_padding_without_new_material_is_rejected(contract, direct_vm, direct_alice, direct_bob):
+    _create(contract, direct_vm, direct_alice)
+    proposal_id = _submit(contract, direct_vm, direct_bob)
+    direct_vm.sender = direct_bob
+    with direct_vm.expect_revert("contest_must_add_novel_material"):
+        contract.contest_proposal(proposal_id, "dashboard dashboard dashboard dashboard dashboard dashboard dashboard dashboard dashboard dashboard dashboard")
+
+
+def test_funded_reviewer_must_be_distinct_and_decision_only_needs_no_attestation(contract, direct_vm, direct_alice, direct_bob):
+    with direct_vm.expect_revert("invalid_reviewer"):
+        _create(contract, direct_vm, direct_alice, reviewer=direct_alice)
+    with direct_vm.expect_revert("invalid_reviewer"):
+        _create(contract, direct_vm, direct_alice, reviewer="0x0000000000000000000000000000000000000000")
+    _create(contract, direct_vm, direct_alice, pool=0, bond=0, reviewer="0x0000000000000000000000000000000000000000")
+    proposal_id = _submit(contract, direct_vm, direct_bob, requested=1_000, bond=0)
+    direct_vm.warp("2026-10-01T14:01:00Z")
+    contract.finalize_round(1)
+    assert contract.get_round(1)["winner_ids"] == [proposal_id]
+    assert contract.get_proposal(proposal_id)["award_atto"] == 0
+    assert contract.get_proposal(proposal_id)["status"] == "SELECTED"

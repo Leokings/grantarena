@@ -1,52 +1,39 @@
 {
-  "schema": "grantarena-deployment/v1",
+  "schema": "grantarena-deployment/v2",
   "network": {
     "name": "GenLayer StudioNet",
     "chainId": 61999,
     "rpc": "https://studio.genlayer.com/api"
   },
   "contract": {
-    "address": "0x9459d5b6e3da734255C5ae6039Ed104d9D74F3B3",
-    "deploymentTransaction": "0xb34fe17f803162072c96b1d34a45c0811a053d1e17f21ef0ff5e42cd1e2ae40f",
-    "sourceSha256": "0908b0266021d294b19e8285020a4141f9b476b7981ff21f6f83f76597ad75a8",
-    "deployedSourceSha256": "0908b0266021d294b19e8285020a4141f9b476b7981ff21f6f83f76597ad75a8",
-    "sourceExact": true
+    "address": "0x1ce8DB3eD235dEdF7e2Ec9E4318EbdD99Ad43F6f",
+    "deploymentTransaction": "0x6b84ffe5624f811f559e69ff99a107ef45d1e581b48eccb6f18b45c82808e9b6",
+    "sourceSha256": "097fac35c308b9290f25d6074122f25dc8303a8aa9d3d90f0a75acb6d9665a46",
+    "deployedSourceSha256": "097fac35c308b9290f25d6074122f25dc8303a8aa9d3d90f0a75acb6d9665a46",
+    "sourceExact": true,
+    "version": "grantarena/v2"
   },
-  "fundedCanary": {
-    "roundId": 3,
+  "attestedAwardCanary": {
+    "roundId": 1,
+    "proposalId": 1,
     "poolAtto": "1000000000000000",
-    "owner": "0xa2B9c4903921a1EBEcd63Dd84F13431829B57719",
-    "cancelTransaction": "0x9c63119ea69dcad45bec0f15f0024c7ca2e1759eda75adb40bd22043fc756243",
-    "withdrawTransaction": "0xa36f07a9f1104d18c6f328b067a2188d694b2e651a8a2629d0b6c1eee925a718",
-    "roundStatus": "CANCELLED",
-    "withdrawalStatus": "TRANSFER_QUEUED",
-    "balanceAfterCreateAtto": "4000000000000000",
-    "balanceAfterWithdrawalAtto": "5000000000000000",
-    "externalCreditObserved": true,
-    "createTransactionCaptured": false
+    "winnerAwardAtto": "600000000000000",
+    "creatorRemainderAtto": "400000000000000",
+    "reviewerAttestationFinalized": true,
+    "winnerExternalCreditObserved": true,
+    "evidenceFile": "docs/STUDIONET-ATTESTED-AWARD-EVIDENCE-2026-10-03.json",
+    "verificationCommand": "node scripts/verify-studionet-v2.mjs"
   },
-  "liveVerification": {
-    "status": "FINALIZED",
-    "consensus": "MAJORITY_AGREE",
+  "unattestedNoPayoutCanary": {
     "roundId": 2,
     "proposalId": 2,
-    "createRoundTransaction": "0x254904fc7e2bd308a6a1e9db99d1b0310e34b9a4ae3dedc876457873df8c1393",
-    "submitProposalTransaction": "0x04db9488c1778e646e77ff77f076a3fcd60ed01b026cee1261f3a864089a91ae",
-    "observed": {
-      "roundStatus": "OPEN",
-      "proposalStatus": "QUALIFIED",
-      "proposalScore": 75,
-      "proposalGrades": ["STRONG", "STRONG"]
-    },
-    "schemaMethodsVerified": [
-      "contest_proposal",
-      "create_round",
-      "finalize_round",
-      "get_proposal",
-      "get_round",
-      "list_round_proposals",
-      "list_rounds",
-      "submit_proposal"
-    ]
+    "proposalScore": 75,
+    "allocatedAtto": "0",
+    "returnedAtto": "100000000000000",
+    "evidenceFile": "docs/STUDIONET-UNATTESTED-EVIDENCE-2026-10-03.json"
+  },
+  "priorVersion": {
+    "address": "0x9459d5b6e3da734255C5ae6039Ed104d9D74F3B3",
+    "deploymentFile": "deployments/studionet-v1.json"
   }
 }

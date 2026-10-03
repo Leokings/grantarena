@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { formatEther, parseEther } from 'viem';
+import { formatEther, isAddress, parseEther } from 'viem';
 import { contractTextError, previewProposal } from './lib/preview';
 import { chooseAvailableRoundId } from './lib/round-selection';
 import {
@@ -125,6 +125,7 @@ function CreateRoundForm({
   const [payouts, setPayouts] = useState('100');
   const [pool, setPool] = useState('0');
   const [bond, setBond] = useState('0');
+  const [reviewer, setReviewer] = useState('');
   const [criteria, setCriteria] = useState<Criterion[]>(defaultCriteria);
   const [notice, setNotice] = useState<Notice>(null);
   const [busy, setBusy] = useState(false);
@@ -193,7 +194,12 @@ function CreateRoundForm({
       if (poolAtto < 0n || poolAtto > 10n ** 30n) throw new Error('Pool must be between 0 and 1 trillion test GEN.');
       if (bondAtto < 0n || bondAtto > poolAtto) throw new Error('Proposal bond cannot exceed the pool.');
       if (poolAtto === 0n && bondAtto !== 0n) throw new Error('Decision-only rounds must use a zero proposal bond.');
+      const reviewerAddress = poolAtto > 0n ? reviewer.trim() : '0x0000000000000000000000000000000000000000';
+      if (!isAddress(reviewerAddress)) throw new Error('Enter a valid EVM wallet address for the evidence reviewer.');
       const connected = account || await onNeedWallet();
+      if (poolAtto > 0n && reviewerAddress.toLowerCase() === connected.toLowerCase()) {
+        throw new Error('The reviewer must use a different wallet from the round creator.');
+      }
       setBusy(true);
       setNotice({ tone: 'info', text: 'Confirm the round in your wallet.' });
       let submittedHash = '';
@@ -207,6 +213,7 @@ function CreateRoundForm({
         winnerCount: Number(winnerCount),
         minimumScore: Number(minimumScore),
         proposalBondAtto: bondAtto,
+        reviewer: reviewerAddress,
         criteria: criteria.map((item) => ({ ...item, id: cleanSlug(item.id) })),
         payoutBps,
         poolAtto,
@@ -245,6 +252,7 @@ function CreateRoundForm({
         <label>Proposal bond (test GEN)<input inputMode="decimal" value={bond} required onChange={(event) => setBond(event.target.value)} /></label>
         <label>Payouts (%)<input value={payouts} required onChange={(event) => setPayouts(event.target.value)} /><small>Example: 60, 30, 10</small></label>
       </div>
+      <label>Evidence reviewer wallet<input value={reviewer} placeholder="0x…" required={Number(pool) > 0} disabled={Number(pool) === 0} onChange={(event) => setReviewer(event.target.value)} /><small>Required for a funded round. Choose a wallet you trust that is not yours or an applicant's. Its signature gates payouts, but does not prove claims true.</small></label>
 
       <div className="criteria-head">
         <div><span className="eyebrow">Weighted rubric</span><h3>What should validators look for?</h3></div>
@@ -327,6 +335,9 @@ function ProposalForm({
         throw new Error('Requested amount must be positive and cannot exceed this round’s funded pool.');
       }
       const evidenceUrls = evidence.split('\n').map((item) => item.trim()).filter(Boolean);
+      if (BigInt(selected.poolAtto) > 0n && evidenceUrls.length === 0) {
+        throw new Error('Funded proposals need at least one HTTPS evidence URL for reviewer assessment.');
+      }
       if (evidenceUrls.length > 5 || new Set(evidenceUrls).size !== evidenceUrls.length
         || evidenceUrls.some((url) => url.length > 500
           || !/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9._~!$&'()*+,;=:@%/?#-]*)?$/.test(url))) {
@@ -384,11 +395,11 @@ function ProposalForm({
           <label>Short summary<textarea value={summary} minLength={40} maxLength={2400} rows={3} required onChange={(event) => setSummary(event.target.value)} /></label>
           <div className="form-grid two">
             <label>Requested amount (test GEN)<input inputMode="decimal" value={requested} required onChange={(event) => setRequested(event.target.value)} /></label>
-            <label>Evidence URLs<textarea value={evidence} rows={2} placeholder={'https://github.com/your-project\nhttps://your-demo.example'} onChange={(event) => setEvidence(event.target.value)} /><small>Optional. One HTTPS URL per line, maximum 5.</small></label>
+            <label>Evidence URLs<textarea value={evidence} rows={2} placeholder={'https://github.com/your-project\nhttps://your-demo.example'} onChange={(event) => setEvidence(event.target.value)} /><small>Required for funded rounds; optional for decision-only rounds. One HTTPS URL per line, maximum 5. A reviewer must inspect the sources; links alone are not authenticated proof.</small></label>
           </div>
           <div className="answer-list">
             {selected?.criteria.map((criterion) => {
-              const cap = preview?.deterministicCaps.find((item) => item.id === criterion.id)?.maxScore ?? 25;
+              const cap = preview?.deterministicCaps.find((item) => item.id === criterion.id)?.maxScore ?? 0;
               return (
                 <label key={criterion.id}>
                   <span className="answer-label"><b>{criterion.label}</b><em>{criterion.weight}% weight · max {cap}/100 before review</em></span>
@@ -410,6 +421,7 @@ function ProposalForm({
 }
 
 function ProposalCard({ proposal, round }: { proposal: ProposalRecord; round: RoundRecord }) {
+  const attested = proposal.attestedAt !== '0' && proposal.attestedDigest === proposal.evidenceDigest;
   return (
     <article className="proposal-card">
       <div className="proposal-score"><strong>{proposal.weightedScore}</strong><span>/100</span></div>
@@ -423,7 +435,14 @@ function ProposalCard({ proposal, round }: { proposal: ProposalRecord; round: Ro
           <span>by {shortAddress(proposal.proposer)}</span><span>asks {formatGen(proposal.requestedAtto)} GEN</span>
           {proposal.rank > 0 && <span>rank #{proposal.rank}</span>}
           {BigInt(proposal.awardAtto) > 0n && <span>award {formatGen(proposal.awardAtto)} GEN</span>}
+          {BigInt(round.poolAtto) > 0n && <span>{attested ? `Evidence attested by ${shortAddress(proposal.attestedBy)}` : round.status === 'FINALIZED' ? 'Not attested; no award' : 'Evidence awaiting reviewer attestation'}</span>}
         </div>
+        <details className="proposal-evidence"><summary>Evidence and review record</summary>
+          <p>Applicant-provided links are not authenticated by GrantArena. The named reviewer is responsible for checking them before signing.</p>
+          {proposal.evidenceUrls.length > 0 ? <ul>{proposal.evidenceUrls.map((url) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></li>)}</ul> : <p>No links submitted.</p>}
+          <p><b>Proposal digest:</b> <code>{proposal.evidenceDigest}</code></p>
+          {attested && <p><b>Reviewer note:</b> {proposal.attestationNote} · {formatDate(proposal.attestedAt)}</p>}
+        </details>
       </div>
     </article>
   );
@@ -432,7 +451,7 @@ function ProposalCard({ proposal, round }: { proposal: ProposalRecord; round: Ro
 function AgentPanel() {
   const origin = typeof window === 'undefined' ? 'https://your-site.vercel.app' : window.location.origin;
   const curl = `curl "${origin}/api/rounds?latest=1&limit=20"`;
-  const tool = `const result = await fetch("${origin}/api/proposals?round=2");\nconst { proposals } = await result.json();`;
+  const tool = `const result = await fetch("${origin}/api/proposals?round=1");\nconst { proposals } = await result.json();`;
   return (
     <div className="agent-grid">
       <div className="agent-intro">
@@ -448,7 +467,7 @@ function AgentPanel() {
         <div className="endpoint-list">
           <a href="/api/health" target="_blank" rel="noreferrer"><code>GET /api/health</code><span>contract health</span></a>
           <a href="/api/rounds?latest=1&limit=20" target="_blank" rel="noreferrer"><code>GET /api/rounds</code><span>funding rounds</span></a>
-          <a href="/api/proposals?round=2" target="_blank" rel="noreferrer"><code>GET /api/proposals</code><span>scores + evidence</span></a>
+          <a href="/api/proposals?round=1" target="_blank" rel="noreferrer"><code>GET /api/proposals</code><span>scores + evidence</span></a>
           <a href="/api/openapi" target="_blank" rel="noreferrer"><code>POST /api/preview</code><span>pre-submit check</span></a>
         </div>
       </div>
@@ -644,7 +663,7 @@ export default function App() {
         setNotice({ tone: 'info', text: 'Finalization submitted. Waiting for consensus…', hash: value });
       });
       await refresh(selectedRound);
-      setNotice({ tone: 'good', text: 'Round finalized and awards credited.', hash });
+      setNotice({ tone: 'good', text: 'Round finalized. Eligible awards were credited; unallocated funds were returned to the creator.', hash });
     } catch (error) {
       setNotice(errorNotice(error));
     } finally {
@@ -666,6 +685,51 @@ export default function App() {
       });
       if (selectedRound) await refresh(selectedRound);
       setNotice({ tone: 'good', text: 'Contest finalized and the proposal record is updated.', hash });
+    } catch (error) {
+      setNotice(errorNotice(error));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function runAttest(proposal: ProposalRecord) {
+    if (!selectedRound) return;
+    const note = window.prompt('Only attest after independently checking this proposal and its evidence links. Explain what you checked (40–600 ASCII characters).');
+    if (note === null) return;
+    try {
+      requireContractText(note, 'Reviewer note', 40, 600);
+      const connected = account || await connect();
+      if (connected.toLowerCase() !== selectedRound.reviewer.toLowerCase()) throw new Error('Connect the named reviewer wallet to attest.');
+      setActionBusy(true);
+      let hash = '';
+      const { attestProposal } = await import('./lib/genlayer');
+      await attestProposal(connected, BigInt(proposal.proposalId), proposal.evidenceDigest, note.trim(), (value) => {
+        hash = value;
+        setNotice({ tone: 'info', text: 'Attestation submitted. Waiting for finality…', hash: value });
+      });
+      await refresh(selectedRound);
+      setNotice({ tone: 'good', text: 'This exact proposal version is attested for payout eligibility.', hash });
+    } catch (error) {
+      setNotice(errorNotice(error));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function runRevoke(proposal: ProposalRecord) {
+    if (!selectedRound) return;
+    try {
+      const connected = account || await connect();
+      if (connected.toLowerCase() !== selectedRound.reviewer.toLowerCase()) throw new Error('Connect the named reviewer wallet to revoke.');
+      setActionBusy(true);
+      let hash = '';
+      const { revokeAttestation } = await import('./lib/genlayer');
+      await revokeAttestation(connected, BigInt(proposal.proposalId), (value) => {
+        hash = value;
+        setNotice({ tone: 'info', text: 'Revocation submitted. Waiting for finality…', hash: value });
+      });
+      await refresh(selectedRound);
+      setNotice({ tone: 'good', text: 'Attestation revoked; this proposal is no longer payout-eligible.', hash });
     } catch (error) {
       setNotice(errorNotice(error));
     } finally {
@@ -732,7 +796,7 @@ export default function App() {
           <div className="hero-copy">
             <div className="live-chip"><i /> Live on StudioNet <span>·</span> public contract</div>
             <h1>Better grants,<br /><em>decided in public.</em></h1>
-            <p>Set a weighted rubric. Let independent AI validators review every proposal. Settle rankings and awards with deterministic on-chain rules.</p>
+            <p>Set a weighted rubric. AI validators score proposals, a named reviewer checks evidence for funded rounds, and the contract settles eligible awards.</p>
             <div className="hero-actions">
               <button className="primary-button" onClick={() => setView('create')}>Launch a round <span>↗</span></button>
               <button className="outline-button" onClick={() => setView('apply')}>Submit a proposal</button>
@@ -751,7 +815,7 @@ export default function App() {
         </section>
 
         <section className="trust-ribbon" aria-label="Product guarantees">
-          <span>◇ Weighted criteria</span><span>✦ Multi-validator review</span><span>⌁ Deterministic settlement</span><span>◎ Public audit trail</span>
+          <span>◇ Weighted criteria</span><span>✦ Multi-validator review</span><span>✓ Signed evidence check</span><span>◎ Public audit trail</span>
         </section>
 
         <section className="workspace" id="workspace">
@@ -781,9 +845,10 @@ export default function App() {
                       <div className="round-pool"><span>{BigInt(selectedRound.poolAtto) > 0n ? selectedRound.status === 'OPEN' ? 'Prize pool' : 'Original pool' : 'Mode'}</span><strong>{BigInt(selectedRound.poolAtto) > 0n ? `${formatGen(selectedRound.poolAtto)} GEN` : 'Decision only'}</strong><small>{selectedRound.status === 'CANCELLED' ? 'Credited back to creator' : `${selectedRound.winnerCount} winner${selectedRound.winnerCount === 1 ? '' : 's'} · minimum ${selectedRound.minimumScore}`}</small></div>
                     </div>
                     <div className="round-timeline"><div><i className="done" /><span>Created<b>{formatDate(selectedRound.createdAt)}</b></span></div><div><i className={Date.now() >= Number(selectedRound.submissionDeadline) * 1000 || selectedRound.status !== 'OPEN' ? 'done' : 'current'} /><span>Submissions close<b>{formatDate(selectedRound.submissionDeadline)}</b></span></div><div><i className={selectedRound.status !== 'OPEN' ? 'done' : ''} /><span>{selectedRound.status === 'CANCELLED' ? 'Cancelled' : selectedRound.status === 'FINALIZED' ? 'Finalized' : 'Finalizable after'}<b>{formatDate(selectedRound.status === 'OPEN' ? selectedRound.appealDeadline : selectedRound.finalizedAt)}</b></span></div></div>
+                    {BigInt(selectedRound.poolAtto) > 0n && <p className="reviewer-line"><b>Evidence reviewer:</b> {shortAddress(selectedRound.reviewer)} · Only qualified proposals attested by this wallet can receive an award. A signature does not prove reviewer independence.</p>}
                     <div className="rubric-view"><div className="subhead"><h4>Published rubric</h4><span>weights total 100</span></div>{selectedRound.criteria.map((criterion) => <div className="rubric-row" key={criterion.id}><span>{criterion.weight}</span><div><b>{criterion.label}</b><p>{criterion.description}</p></div></div>)}</div>
                     <div className="subhead proposal-heading"><h4>Proposal scoreboard</h4><span>{proposals.length} received · {selectedRound.qualifiedCount} qualified</span></div>
-                    <div className="proposal-list">{proposals.length > 0 ? [...proposals].sort((a, b) => b.weightedScore - a.weightedScore).map((proposal) => <div key={proposal.proposalId}><ProposalCard proposal={proposal} round={selectedRound} />{account && account.toLowerCase() === proposal.proposer.toLowerCase() && !proposal.contestUsed && selectedRound.status === 'OPEN' && Number(selectedRound.appealDeadline) * 1000 > Date.now() && <button className="text-button proposal-action" disabled={actionBusy} onClick={() => void runContest(proposal)}>Contest with new material →</button>}</div>) : <div className="empty-proposals"><span>✦</span><h4>{selectedRound.status === 'CANCELLED' ? 'This round was cancelled without proposals.' : selectedRound.status === 'FINALIZED' || Number(selectedRound.submissionDeadline) * 1000 <= Date.now() ? 'No proposals were submitted.' : 'The first proposal could be yours.'}</h4>{selectedRound.status === 'OPEN' && Number(selectedRound.submissionDeadline) * 1000 > Date.now() && <button className="outline-button compact" onClick={() => setView('apply')}>Apply to this round</button>}</div>}</div>
+                    <div className="proposal-list">{proposals.length > 0 ? [...proposals].sort((a, b) => b.weightedScore - a.weightedScore).map((proposal) => <div key={proposal.proposalId}><ProposalCard proposal={proposal} round={selectedRound} />{account && account.toLowerCase() === proposal.proposer.toLowerCase() && !proposal.contestUsed && selectedRound.status === 'OPEN' && Number(selectedRound.appealDeadline) * 1000 > Date.now() && <button className="text-button proposal-action" disabled={actionBusy} onClick={() => void runContest(proposal)}>Contest with new material →</button>}{account && account.toLowerCase() === selectedRound.reviewer.toLowerCase() && selectedRound.status === 'OPEN' && BigInt(selectedRound.poolAtto) > 0n && proposal.status === 'QUALIFIED' && (proposal.attestedAt === '0' ? <button className="text-button proposal-action" disabled={actionBusy} onClick={() => void runAttest(proposal)}>Review and attest this version →</button> : <button className="text-button proposal-action" disabled={actionBusy} onClick={() => void runRevoke(proposal)}>Revoke attestation →</button>)}</div>) : <div className="empty-proposals"><span>✦</span><h4>{selectedRound.status === 'CANCELLED' ? 'This round was cancelled without proposals.' : selectedRound.status === 'FINALIZED' || Number(selectedRound.submissionDeadline) * 1000 <= Date.now() ? 'No proposals were submitted.' : 'The first proposal could be yours.'}</h4>{selectedRound.status === 'OPEN' && Number(selectedRound.submissionDeadline) * 1000 > Date.now() && <button className="outline-button compact" onClick={() => setView('apply')}>Apply to this round</button>}</div>}</div>
                     <div className="round-actions"><button className="primary-button compact" onClick={() => setView('apply')} disabled={selectedRound.status !== 'OPEN' || Number(selectedRound.submissionDeadline) * 1000 <= Date.now()}>Apply to round</button>{selectedRound.status === 'OPEN' && Number(selectedRound.appealDeadline) * 1000 <= Date.now() && <button className="outline-button compact" disabled={actionBusy} onClick={() => void runFinalize()}>Finalize ranking</button>}{account && BigInt(claimableAtto) > 0n && <button className="text-button" disabled={actionBusy} onClick={() => void runWithdraw()}>Withdraw {formatGen(claimableAtto)} GEN</button>}</div>
                   </>
                 ) : <div className="empty-state"><span>○</span><h3>Select a round</h3></div>}
@@ -799,14 +864,14 @@ export default function App() {
           <div className="section-heading"><div><span className="eyebrow">First time here?</span><h2>From idea to accountable award.</h2></div><p>Three steps. Every important rule is visible before anyone submits.</p></div>
           <div className="steps-grid">
             <article><span>01</span><div className="step-icon">◎</div><h3>Publish the rules</h3><p>A funder sets the mission, rubric, weights, deadline, winners, and payout split.</p></article>
-            <article><span>02</span><div className="step-icon coral">✦</div><h3>Review by consensus</h3><p>Applicants answer each criterion. Independent validators agree on categorical grades.</p></article>
-            <article><span>03</span><div className="step-icon yellow">↗</div><h3>Settle deterministically</h3><p>The contract applies score caps, weights, tie-breaks, ranking, and award credits.</p></article>
+            <article><span>02</span><div className="step-icon coral">✦</div><h3>Score and check evidence</h3><p>AI validators agree on rubric grades. For funded rounds, a separate named wallet must attest to the exact proposal version.</p></article>
+            <article><span>03</span><div className="step-icon yellow">↗</div><h3>Settle deterministically</h3><p>The contract ranks eligible proposals, credits awards, and returns unallocated funds to the creator.</p></article>
           </div>
         </section>
 
         <section className="proof-section">
           <div><span className="eyebrow light">Built to verify</span><h2>Trust the record,<br />not a black box.</h2><p>The deployed source, transaction history, rubric, scores, and outcomes are publicly inspectable.</p><div className="proof-links"><a href={explorerContract()} target="_blank" rel="noreferrer">View live contract ↗</a><a href={explorerTransaction(DEPLOYMENT_TRANSACTION)} target="_blank" rel="noreferrer">Deployment proof ↗</a></div></div>
-          <div className="ledger-card"><div className="ledger-head"><span>FINALIZED RECORD</span><i>✓</i></div><dl><div><dt>Network</dt><dd>GenLayer StudioNet</dd></div><div><dt>Contract</dt><dd>{shortAddress(STUDIONET_CONTRACT_ADDRESS)}</dd></div><div><dt>Version</dt><dd>{health?.contract?.version ?? 'grantarena/v1'}</dd></div><div><dt>Settlement</dt><dd>Deterministic integer math</dd></div><div><dt>Validator result</dt><dd>Public on-chain</dd></div></dl></div>
+          <div className="ledger-card"><div className="ledger-head"><span>FINALIZED RECORD</span><i>✓</i></div><dl><div><dt>Network</dt><dd>GenLayer StudioNet</dd></div><div><dt>Contract</dt><dd>{shortAddress(STUDIONET_CONTRACT_ADDRESS)}</dd></div><div><dt>Version</dt><dd>{health?.contract?.version ?? 'grantarena/v2'}</dd></div><div><dt>Settlement</dt><dd>Deterministic integer math</dd></div><div><dt>Validator result</dt><dd>Public on-chain</dd></div></dl></div>
         </section>
       </main>
 

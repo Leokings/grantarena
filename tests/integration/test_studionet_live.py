@@ -67,7 +67,7 @@ def _rpc(method: str, params: list[Any]) -> Any:
 
 def test_studionet_live_round_and_consensus_proposal():
     creator, applicant = create_accounts(2)
-    source = Path(__file__).resolve().parents[2] / "contracts" / "grant_arena.py"
+    source = Path(__file__).resolve().parents[2] / "contracts" / "grant_arena_v1.py"
     factory = get_contract_factory(contract_file_path=source)
     creator_contract = factory.build_contract(CONTRACT_ADDRESS, account=creator)
     applicant_contract = factory.build_contract(CONTRACT_ADDRESS, account=applicant)

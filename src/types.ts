@@ -10,6 +10,7 @@ export type RoundRecord = {
   roundId: string;
   roundKey: string;
   creator: string;
+  reviewer: string;
   title: string;
   mission: string;
   submissionDeadline: string;
@@ -46,10 +47,15 @@ export type ProposalRecord = {
   criterionScores: number[];
   weightedScore: number;
   evaluationSummary: string;
-  status: 'QUALIFIED' | 'REJECTED' | 'FUNDED';
+  status: 'QUALIFIED' | 'REJECTED' | 'FUNDED' | 'SELECTED';
   bondAtto: string;
   contestUsed: boolean;
   contestAddendum: string;
+  evidenceDigest: string;
+  attestedBy: string;
+  attestedDigest: string;
+  attestedAt: string;
+  attestationNote: string;
   rank: number;
   awardAtto: string;
   submittedAt: string;
@@ -77,6 +83,7 @@ export type CreateRoundInput = {
   winnerCount: number;
   minimumScore: number;
   proposalBondAtto: bigint;
+  reviewer: string;
   criteria: Criterion[];
   payoutBps: number[];
   poolAtto: bigint;
